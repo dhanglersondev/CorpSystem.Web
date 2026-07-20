@@ -63,7 +63,7 @@ const NotFound = () => {
           </a>
         </div>
         <div className="text-xs text-gray-400 mt-6">
-          &copy; {new Date().getFullYear()} Nome da Empresa. Todos os direitos reservados.
+          &copy; {new Date().getFullYear()} CorpSystem. Todos os direitos reservados.
         </div>
       </div>
     </div>

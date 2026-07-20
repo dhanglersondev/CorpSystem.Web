@@ -33,6 +33,11 @@ const Home = () => {
           O CorpSystem foi criado para otimizar processos e simplificar decisões, apoiando o crescimento e a organização de empresas de todos os portes. Tenha controle total dos dados corporativos com colaboração e segurança em todos os níveis.
         </p>
       </section>
+      <footer className="w-full flex justify-center mt-6">
+        <div className="text-xs text-gray-400 text-center">
+          &copy; {new Date().getFullYear()} CorpSystem. Todos os direitos reservados.
+        </div>
+      </footer>
     </div>
   );
 };

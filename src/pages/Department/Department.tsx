@@ -1,5 +1,5 @@
 import { useState } from "react";
-import ActionPanel from "../components/ActionPanel/ActionPanel";
+import ActionPanel from "../../components/ActionPanel/ActionPanel";
 
 // Links de navegação
 const getDepartmentLink = (id: number) => `/departments/${id}`;
