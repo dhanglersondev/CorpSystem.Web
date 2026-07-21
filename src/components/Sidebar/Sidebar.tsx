@@ -97,21 +97,6 @@ const Sidebar = () => {
             </span>
             {!isCollapsed && "Cargo"}
           </a>
-          <a
-            href="/roles"
-            className={`flex items-center gap-3 px-2 py-1 rounded transition text-md w-full ${
-              isCollapsed ? "justify-center text-xs" : ""
-            } hover:bg-gray-200`}
-            title="Função"
-          >
-            <span>
-              <svg className={`${isCollapsed ? "mx-auto" : ""} w-7 h-7`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <circle cx="12" cy="8" r="4" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </span>
-            {!isCollapsed && "Função"}
-          </a>
         </nav>
       </div>
       {/* Footer: Thema acima de Configurações */}
