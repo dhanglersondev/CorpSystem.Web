@@ -33,6 +33,25 @@ const DepartmentIcon = ({
   </svg>
 );
 
+// StatusBadge com estilo igual ao de Position.tsx
+const StatusBadge = ({ active }: { active: boolean }) => (
+  <span
+    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full font-medium text-xs 
+      ${
+        active
+          ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+          : "bg-red-50 text-red-700 border border-red-200"
+      } transition duration-150`}
+  >
+    <span
+      className={`w-2 h-2 rounded-full 
+        ${active ? "bg-emerald-400" : "bg-red-400"}
+        border border-white shadow`}
+    />
+    {active ? "Ativo" : "Inativo"}
+  </span>
+);
+
 const DepartmentPage = () => {
   const [departments, setDepartments] = useState<DepartmentResponseDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -195,25 +214,25 @@ const DepartmentPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-2 sm:py-10">
-      <section className="w-full max-w-5xl shadow rounded-2xl bg-white border border-gray-200 flex flex-col px-3 py-5 sm:px-8 sm:py-8 gap-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 w-full">
-          <span className="flex items-center gap-2 sm:gap-4">
-            <span className="text-blue-700">
-              <DepartmentIcon className="w-9 h-9 sm:w-12 sm:h-12" />
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 flex flex-col items-center py-10 px-4">
+      <section className="w-full max-w-5xl rounded-3xl bg-white border border-gray-200 shadow-lg flex flex-col px-6 py-8 gap-6 transition-all duration-300">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-8 w-full">
+          <span className="flex items-center gap-3 sm:gap-6">
+            <span className="text-blue-700 drop-shadow-lg">
+              <DepartmentIcon className="w-12 h-12 sm:w-14 sm:h-14" />
             </span>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 drop-shadow-sm">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight drop-shadow">
               Departamentos
             </h1>
           </span>
           <button
-            className="flex items-center bg-blue-600 text-white font-semibold rounded px-3 py-2 sm:px-4 hover:bg-blue-700 transition text-sm sm:text-base shadow w-full sm:w-auto justify-center"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl px-5 py-2.5 shadow-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base sm:text-lg w-full sm:w-auto justify-center"
             onClick={openCreatePanel}
             aria-label="Criar novo departamento"
             title="Criar novo departamento"
           >
             <svg
-              className="w-5 h-5 mr-2"
+              className="w-6 h-6"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 20 20"
@@ -232,21 +251,24 @@ const DepartmentPage = () => {
           </button>
         </div>
         {error && (
-          <div className="bg-red-100 text-red-800 rounded px-4 py-2 mb-2">
+          <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-5 py-3 font-bold mb-2 text-center">
             {error}
           </div>
         )}
-        <div className="overflow-x-auto rounded-lg border border-gray-100">
-          <table className="min-w-full bg-white text-sm sm:text-base">
+        <div className="overflow-x-auto rounded-xl border border-gray-100 shadow">
+          <table className="min-w-full bg-white text-base sm:text-lg border-separate border-spacing-0">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold w-8 sm:w-auto">
+              <tr className="bg-gray-50 border-b">
+                <th className="px-5 py-4 text-left text-gray-400 font-semibold tracking-wider w-10 sm:w-16 rounded-tl-xl">
                   #
                 </th>
-                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold">
+                <th className="px-5 py-4 text-left text-gray-700 font-bold tracking-wider">
                   Nome do Departamento
                 </th>
-                <th className="px-2 py-2 sm:px-4 sm:py-3 text-right text-gray-700 font-semibold">
+                <th className="px-5 py-4 text-left text-gray-700 font-bold tracking-wider">
+                  Status
+                </th>
+                <th className="px-5 py-4 text-right text-gray-700 font-bold tracking-wider rounded-tr-xl">
                   Ações
                 </th>
               </tr>
@@ -255,8 +277,8 @@ const DepartmentPage = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={3}
-                    className="px-2 py-7 sm:px-4 sm:py-8 text-center text-gray-400 text-base sm:text-lg"
+                    colSpan={4}
+                    className="px-5 py-16 text-center text-gray-400 text-lg sm:text-xl font-medium"
                   >
                     Carregando...
                   </td>
@@ -264,8 +286,8 @@ const DepartmentPage = () => {
               ) : departments.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={3}
-                    className="px-2 py-7 sm:px-4 sm:py-8 text-center text-gray-400 text-base sm:text-lg"
+                    colSpan={4}
+                    className="px-5 py-16 text-center text-gray-500 text-lg sm:text-xl font-medium"
                   >
                     Nenhum departamento encontrado.
                   </td>
@@ -274,15 +296,13 @@ const DepartmentPage = () => {
                 departments.map((department, idx) => (
                   <tr
                     key={department.id}
-                    className="border-t last:border-b hover:bg-gray-50 transition"
+                    className="border-t border-gray-100 hover:bg-blue-50/20 transition-colors"
                   >
-                    <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle">
-                      {idx + 1}
-                    </td>
-                    <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle">
+                    <td className="px-5 py-4 align-middle text-gray-500 font-semibold text-center">{idx + 1}</td>
+                    <td className="px-5 py-4 align-middle">
                       <button
                         type="button"
-                        className="font-bold text-blue-700 hover:text-blue-900 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 w-full text-left"
+                        className="font-bold text-blue-700 hover:text-blue-900 hover:underline underline-offset-4 transition focus:outline-none focus:ring-2 focus:ring-blue-400 w-full text-left"
                         tabIndex={0}
                         onClick={() => handleDepartmentSelect(department.id)}
                         onKeyDown={(e) => {
@@ -297,11 +317,14 @@ const DepartmentPage = () => {
                         {department.name}
                       </button>
                     </td>
-                    <td className="px-2 py-2 sm:px-4 sm:py-3 text-right whitespace-nowrap">
-                      <div className="flex justify-end gap-2">
+                    <td className="px-5 py-4 align-middle">
+                      <StatusBadge active={!!department.isActive} />
+                    </td>
+                    <td className="px-5 py-4 text-right whitespace-nowrap align-middle">
+                      <div className="flex justify-end gap-3">
                         {/* Editar */}
                         <button
-                          className="flex items-center justify-center gap-2 px-2 sm:px-3 py-1.5 bg-yellow-400 text-yellow-900 rounded hover:bg-yellow-500 transition text-xs sm:text-sm"
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200 text-sm font-bold shadow-sm transition duration-150 focus:outline-none focus:ring-2 focus:ring-yellow-300"
                           title="Editar departamento"
                           aria-label="Editar departamento"
                           onClick={() =>
@@ -309,8 +332,8 @@ const DepartmentPage = () => {
                           }
                         >
                           <svg
-                            width={16}
-                            height={16}
+                            width={20}
+                            height={20}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 20 20"
@@ -327,14 +350,14 @@ const DepartmentPage = () => {
 
                         {/* Excluir */}
                         <button
-                          className="flex items-center justify-center gap-2 px-2 sm:px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition text-xs sm:text-sm"
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-sm font-bold shadow-sm transition duration-150 focus:outline-none focus:ring-2 focus:ring-red-300"
                           title="Excluir departamento"
                           aria-label="Excluir departamento"
                           onClick={() => handleDelete(department.id)}
                         >
                           <svg
-                            width={16}
-                            height={16}
+                            width={20}
+                            height={20}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 20 20"
@@ -373,7 +396,7 @@ const DepartmentPage = () => {
         title="Editar Departamento"
       >
         <input
-          className="border rounded px-3 py-1 min-w-0 w-full sm:min-w-[180px] focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+          className="border border-gray-300 rounded-lg px-4 py-3 min-w-0 w-full sm:min-w-[250px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-base placeholder-gray-400 bg-gray-50 font-medium transition"
           value={editValue}
           onChange={handleEditChange}
           autoFocus
@@ -394,7 +417,7 @@ const DepartmentPage = () => {
         title="Novo Departamento"
       >
         <input
-          className="border rounded px-3 py-1 min-w-0 w-full sm:min-w-[180px] focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+          className="border border-gray-300 rounded-lg px-4 py-3 min-w-0 w-full sm:min-w-[250px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-base placeholder-gray-400 bg-gray-50 font-medium transition"
           placeholder="Nome do novo departamento"
           value={newDeptValue}
           onChange={handleCreateChange}
@@ -416,7 +439,9 @@ const DepartmentPage = () => {
         title="Confirmação de Exclusão"
         confirmText="Excluir"
       >
-        <p>Tem certeza que deseja excluir este departamento?</p>
+        <p className="text-gray-700 text-base font-semibold text-center">
+          Tem certeza que deseja excluir este departamento?
+        </p>
       </ActionPanel>
     </div>
   );

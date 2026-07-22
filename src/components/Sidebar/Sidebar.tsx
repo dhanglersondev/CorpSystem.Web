@@ -1,4 +1,26 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useLocation, Link } from "react-router-dom";
+
+// Adicionando ícone da posição (do Position.tsx)
+const PositionIcon = ({
+  className = "w-7 h-7",
+}: {
+  className?: string;
+}) => (
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      d="M12 2l7 7-7 13-7-13z"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
 type SidebarProps = {
   sidebarOpen: boolean;
@@ -14,9 +36,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   setIsCollapsed,
 }) => {
   // Detecta se está em mobile (width < 1024px)
-  const [isMobile, setIsMobile] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Função para atualizar if mobile
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
@@ -27,9 +49,32 @@ const Sidebar: React.FC<SidebarProps> = ({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Garante que o sidebar inicia fechado ao montar no mobile
+  useEffect(() => {
+    if (isMobile && sidebarOpen) {
+      setSidebarOpen(false);
+    }
+    // Só executar quando montar inicialmente ou mudar para mobile
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile]);
+
+  // Quando iniciar em telas grandes (PC), iniciar o sidebar recolhido
+  useEffect(() => {
+    // Só tenta setar o estado na montagem inicial
+    if (!isMobile && !isCollapsed) {
+      setIsCollapsed(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile]);
+
   // Quando for mobile, ignorar isCollapsed (sempre mostrar labels)
   const collapsed = isMobile ? false : isCollapsed;
 
+  // Para destacar o link ativo (opcional)
+  const location = useLocation();
+
+  // Adaptação do menu com as rotas reais do router.tsx
+  // ("/", "/departments", "/departments/:id", "/positions", "*")
   return (
     <aside
       className={`
@@ -91,9 +136,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <nav className="space-y-2 flex flex-col items-stretch mt-8">
-          <a
-            href="/"
-            className="flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200"
+          <Link
+            to="/"
+            className={`flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200
+              ${location.pathname === "/" ? "bg-gray-200 font-semibold" : ""}`}
             title="Dashboard"
           >
             <span>
@@ -102,10 +148,11 @@ const Sidebar: React.FC<SidebarProps> = ({
               </svg>
             </span>
             {!collapsed && "Dashboard"}
-          </a>
-          <a
-            href="/departments"
-            className="flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200"
+          </Link>
+          <Link
+            to="/departments"
+            className={`flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200
+              ${location.pathname.startsWith("/departments") ? "bg-gray-200 font-semibold" : ""}`}
             title="Departamentos"
           >
             <span>
@@ -114,32 +161,33 @@ const Sidebar: React.FC<SidebarProps> = ({
               </svg>
             </span>
             {!collapsed && "Departamentos"}
-          </a>
+          </Link>
+          {/* Nenhuma rota para employees em router.tsx, mas mantém visual */}
           <a
             href="/employees"
-            className="flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200"
-            title="Funcionários"
+            className="flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200 opacity-60 pointer-events-none"
+            title="Funcionários (em breve)"
+            tabIndex={-1}
+            aria-disabled="true"
           >
             <span>
               <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path d="M16 21v-2a4 4 0 00-8 0v2M12 11a4 4 0 100-8 4 4 0 000 8z" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
-            {!collapsed && "Funcionários"}
+            {!collapsed && <span className="italic">Funcionários</span>}
           </a>
-          <a
-            href="/positions"
-            className="flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200"
-            title="Cargo"
+          <Link
+            to="/positions"
+            className={`flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200
+              ${location.pathname.startsWith("/positions") ? "bg-gray-200 font-semibold" : ""}`}
+            title="Cargos"
           >
             <span>
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <rect x="8" y="9" width="8" height="6" rx="2" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 15v4M10 19h4" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <PositionIcon />
             </span>
-            {!collapsed && "Cargo"}
-          </a>
+            {!collapsed && "Cargos"}
+          </Link>
         </nav>
       </div>
       <div className="mt-6 pt-6 border-t border-gray-200 flex flex-col gap-2 items-start">
