@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 
-const Topbar = () => {
+interface TopbarProps {
+  onMenuClick: () => void;
+}
+
+const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +33,15 @@ const Topbar = () => {
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm relative z-20">
+      {/* Botão ☰ no mobile apenas */}
+      <button
+        onClick={onMenuClick}
+        className="lg:hidden mr-3 p-2 rounded hover:bg-gray-100 transition"
+        aria-label="Abrir menu"
+        type="button"
+      >
+        <span className="text-2xl leading-none font-bold">☰</span>
+      </button>
       <div className="flex items-center gap-3">
         <svg className="w-8 h-8 text-blue-700" fill="none" viewBox="0 0 40 40">
           <circle cx="20" cy="20" r="19" fill="#2563EB" />
