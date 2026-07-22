@@ -1,15 +1,23 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ActionPanel from "../../components/ActionPanel/ActionPanel";
-import { departmentService, 
-  type DepartmentResponseDto, 
-  type DepartmentCreateDto, 
-  type DepartmentUpdateDto } from "../../services/departmentService";
+import {
+  departmentService,
+  type DepartmentResponseDto,
+  type DepartmentCreateDto,
+  type DepartmentUpdateDto,
+} from "../../services/departmentService";
+import NotFound from "../NotFound/NotFound";
 
-// Links de navegação
-const getDepartmentLink = (id: number) => `/departments/${id}`;
+// Função para obter link de detalhes do departamento
+const getDepartmentDetailLink = (id: number) => `/departments/${id}`;
 
 // SVG Department Icon (mesmo do Sidebar)
-const DepartmentIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
+const DepartmentIcon = ({
+  className = "w-8 h-8",
+}: {
+  className?: string;
+}) => (
   <svg
     className={className}
     fill="none"
@@ -29,6 +37,7 @@ const DepartmentPage = () => {
   const [departments, setDepartments] = useState<DepartmentResponseDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState<boolean>(false);
 
   // For edit panel
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -42,6 +51,8 @@ const DepartmentPage = () => {
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [showCreatePanel, setShowCreatePanel] = useState(false);
 
+  const navigate = useNavigate();
+
   // Fetch departments from API
   const fetchDepartments = async () => {
     setLoading(true);
@@ -49,7 +60,18 @@ const DepartmentPage = () => {
     try {
       const data = await departmentService.getDepartments();
       setDepartments(data);
+
+      // If the API returns 404 or an empty array when this is a "not found" situation
+      if (Array.isArray(data) && data.length === 0) {
+        // Optional: Only treat as not found if some condition applies
+        // Uncomment next line ONLY IF an empty list is "not found" for your context
+        // setNotFound(true);
+      }
     } catch (err: any) {
+      if (err?.response?.status === 404) {
+        setNotFound(true);
+        return;
+      }
       setError("Erro ao carregar departamentos");
     } finally {
       setLoading(false);
@@ -58,6 +80,7 @@ const DepartmentPage = () => {
 
   useEffect(() => {
     fetchDepartments();
+    // eslint-disable-next-line
   }, []);
 
   const handleEditClick = (id: number, currentName: string) => {
@@ -72,7 +95,7 @@ const DepartmentPage = () => {
 
   const handleEditSave = async () => {
     if (editingId != null && editValue.trim()) {
-      const departmentToUpdate = departments.find(d => d.id === editingId);
+      const departmentToUpdate = departments.find((d) => d.id === editingId);
       if (!departmentToUpdate) return;
 
       const updateDto: DepartmentUpdateDto = {
@@ -83,8 +106,12 @@ const DepartmentPage = () => {
       try {
         await departmentService.updateDepartment(editingId, updateDto);
         await fetchDepartments();
-      } catch (err) {
-        setError("Erro ao editar o departamento.");
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          setNotFound(true);
+        } else {
+          setError("Erro ao editar o departamento.");
+        }
       }
     }
     setEditingId(null);
@@ -107,8 +134,12 @@ const DepartmentPage = () => {
       try {
         await departmentService.deleteDepartment(deleteId);
         await fetchDepartments();
-      } catch (err) {
-        setError("Erro ao excluir o departamento.");
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          setNotFound(true);
+        } else {
+          setError("Erro ao excluir o departamento.");
+        }
       }
       setDeleteId(null);
     }
@@ -136,8 +167,12 @@ const DepartmentPage = () => {
       try {
         await departmentService.createDepartment(createDto);
         await fetchDepartments();
-      } catch (err) {
-        setError("Erro ao criar departamento.");
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          setNotFound(true);
+        } else {
+          setError("Erro ao criar departamento.");
+        }
       }
     }
     setNewDeptValue("");
@@ -148,6 +183,16 @@ const DepartmentPage = () => {
     setNewDeptValue("");
     setShowCreatePanel(false);
   };
+
+  // Handler para redirecionar para a página de detalhes do departamento
+  const handleDepartmentSelect = (id: number) => {
+    navigate(getDepartmentDetailLink(id));
+  };
+
+  // If the page is not found (API 404 or forced condition), render NotFound
+  if (notFound) {
+    return <NotFound />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-2 sm:py-10">
@@ -167,11 +212,23 @@ const DepartmentPage = () => {
             aria-label="Criar novo departamento"
             title="Criar novo departamento"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 20 20">
-              <path d="M10 5v10M5 10h10" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                d="M10 5v10M5 10h10"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
             Novo Departamento
-            <span className="sr-only">Adicionar um novo departamento à lista</span>
+            <span className="sr-only">
+              Adicionar um novo departamento à lista
+            </span>
           </button>
         </div>
         {error && (
@@ -183,15 +240,24 @@ const DepartmentPage = () => {
           <table className="min-w-full bg-white text-sm sm:text-base">
             <thead>
               <tr className="bg-gray-100">
-                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold w-8 sm:w-auto">#</th>
-                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold">Nome do Departamento</th>
-                <th className="px-2 py-2 sm:px-4 sm:py-3 text-right text-gray-700 font-semibold">Ações</th>
+                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold w-8 sm:w-auto">
+                  #
+                </th>
+                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold">
+                  Nome do Departamento
+                </th>
+                <th className="px-2 py-2 sm:px-4 sm:py-3 text-right text-gray-700 font-semibold">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={3} className="px-2 py-7 sm:px-4 sm:py-8 text-center text-gray-400 text-base sm:text-lg">
+                  <td
+                    colSpan={3}
+                    className="px-2 py-7 sm:px-4 sm:py-8 text-center text-gray-400 text-base sm:text-lg"
+                  >
                     Carregando...
                   </td>
                 </tr>
@@ -210,15 +276,26 @@ const DepartmentPage = () => {
                     key={department.id}
                     className="border-t last:border-b hover:bg-gray-50 transition"
                   >
-                    <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle">{idx + 1}</td>
                     <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle">
-                      <a
-                        href={getDepartmentLink(department.id)}
-                        className="font-bold text-blue-700 hover:text-blue-900 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      {idx + 1}
+                    </td>
+                    <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle">
+                      <button
+                        type="button"
+                        className="font-bold text-blue-700 hover:text-blue-900 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 w-full text-left"
                         tabIndex={0}
+                        onClick={() => handleDepartmentSelect(department.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleDepartmentSelect(department.id);
+                          }
+                        }}
+                        aria-label={`Ver detalhes do departamento ${department.name}`}
+                        title={`Ver detalhes do departamento ${department.name}`}
                       >
                         {department.name}
-                      </a>
+                      </button>
                     </td>
                     <td className="px-2 py-2 sm:px-4 sm:py-3 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">
@@ -227,7 +304,9 @@ const DepartmentPage = () => {
                           className="flex items-center justify-center gap-2 px-2 sm:px-3 py-1.5 bg-yellow-400 text-yellow-900 rounded hover:bg-yellow-500 transition text-xs sm:text-sm"
                           title="Editar departamento"
                           aria-label="Editar departamento"
-                          onClick={() => handleEditClick(department.id, department.name)}
+                          onClick={() =>
+                            handleEditClick(department.id, department.name)
+                          }
                         >
                           <svg
                             width={16}
@@ -266,7 +345,11 @@ const DepartmentPage = () => {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                             />
-                            <path d="M4 6h12" strokeWidth={2} strokeLinecap="round" />
+                            <path
+                              d="M4 6h12"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                            />
                           </svg>
                           <span className="hidden sm:inline">Excluir</span>
                         </button>
