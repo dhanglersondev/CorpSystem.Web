@@ -1,20 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ActionPanel from "../../components/ActionPanel/ActionPanel";
+import { departmentService, 
+  type DepartmentResponseDto, 
+  type DepartmentCreateDto, 
+  type DepartmentUpdateDto } from "../../services/departmentService";
 
 // Links de navegação
 const getDepartmentLink = (id: number) => `/departments/${id}`;
-
-type Department = {
-  id: number;
-  name: string;
-};
-
-const initialDepartments: Department[] = [
-  { id: 1, name: "Recursos Humanos" },
-  { id: 2, name: "Financeiro" },
-  { id: 3, name: "Tecnologia da Informação" },
-  { id: 4, name: "Marketing" },
-];
 
 // SVG Department Icon (mesmo do Sidebar)
 const DepartmentIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
@@ -34,15 +26,39 @@ const DepartmentIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
 );
 
 const DepartmentPage = () => {
-  const [departments, setDepartments] = useState<Department[]>(initialDepartments);
+  const [departments, setDepartments] = useState<DepartmentResponseDto[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // For edit panel
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState<string>("");
+  // For create panel
   const [newDeptValue, setNewDeptValue] = useState<string>("");
+  // For delete panel
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // For modals
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [showCreatePanel, setShowCreatePanel] = useState(false);
+
+  // Fetch departments from API
+  const fetchDepartments = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await departmentService.getDepartments();
+      setDepartments(data);
+    } catch (err: any) {
+      setError("Erro ao carregar departamentos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
 
   const handleEditClick = (id: number, currentName: string) => {
     setEditingId(id);
@@ -54,13 +70,22 @@ const DepartmentPage = () => {
     setEditValue(e.target.value);
   };
 
-  const handleEditSave = () => {
-    if (editingId != null) {
-      setDepartments((prev) =>
-        prev.map((dep) =>
-          dep.id === editingId ? { ...dep, name: editValue.trim() || dep.name } : dep
-        )
-      );
+  const handleEditSave = async () => {
+    if (editingId != null && editValue.trim()) {
+      const departmentToUpdate = departments.find(d => d.id === editingId);
+      if (!departmentToUpdate) return;
+
+      const updateDto: DepartmentUpdateDto = {
+        name: editValue.trim(),
+        isActive: departmentToUpdate.isActive, // or true by default
+      };
+
+      try {
+        await departmentService.updateDepartment(editingId, updateDto);
+        await fetchDepartments();
+      } catch (err) {
+        setError("Erro ao editar o departamento.");
+      }
     }
     setEditingId(null);
     setEditValue("");
@@ -77,9 +102,14 @@ const DepartmentPage = () => {
     setDeleteId(id);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteId !== null) {
-      setDepartments((prev) => prev.filter((dep) => dep.id !== deleteId));
+      try {
+        await departmentService.deleteDepartment(deleteId);
+        await fetchDepartments();
+      } catch (err) {
+        setError("Erro ao excluir o departamento.");
+      }
       setDeleteId(null);
     }
   };
@@ -97,12 +127,18 @@ const DepartmentPage = () => {
     setNewDeptValue("");
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (newDeptValue.trim()) {
-      setDepartments((prev) => [
-        ...prev,
-        { id: prev.length > 0 ? Math.max(...prev.map(d => d.id)) + 1 : 1, name: newDeptValue.trim() },
-      ]);
+      const createDto: DepartmentCreateDto = {
+        name: newDeptValue.trim(),
+        isActive: true,
+      };
+      try {
+        await departmentService.createDepartment(createDto);
+        await fetchDepartments();
+      } catch (err) {
+        setError("Erro ao criar departamento.");
+      }
     }
     setNewDeptValue("");
     setShowCreatePanel(false);
@@ -138,6 +174,11 @@ const DepartmentPage = () => {
             <span className="sr-only">Adicionar um novo departamento à lista</span>
           </button>
         </div>
+        {error && (
+          <div className="bg-red-100 text-red-800 rounded px-4 py-2 mb-2">
+            {error}
+          </div>
+        )}
         <div className="overflow-x-auto rounded-lg border border-gray-100">
           <table className="min-w-full bg-white text-sm sm:text-base">
             <thead>
@@ -148,7 +189,13 @@ const DepartmentPage = () => {
               </tr>
             </thead>
             <tbody>
-              {departments.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={3} className="px-2 py-7 sm:px-4 sm:py-8 text-center text-gray-400 text-base sm:text-lg">
+                    Carregando...
+                  </td>
+                </tr>
+              ) : departments.length === 0 ? (
                 <tr>
                   <td
                     colSpan={3}
