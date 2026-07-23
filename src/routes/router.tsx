@@ -6,6 +6,7 @@ import Home from "../pages/Home/Home";
 import DepartmentPage from "../pages/Department/Department";
 import DepartmentDetail from "../pages/Department/DepartmentDetail";
 import PositionPage from "../pages/Position/Position";
+import PositionDetail from "../pages/Position/PositionDetail";
 import NotFound from "../pages/NotFound/NotFound";
 
 export const router = createBrowserRouter([
@@ -27,6 +28,10 @@ export const router = createBrowserRouter([
       {
         path: "/positions",
         element: <PositionPage />,
+      },
+      {
+        path: "/positions/:id",
+        element: <PositionDetail />,
       },
       {
         path: "*",

@@ -12,7 +12,7 @@ import NotFound from "../NotFound/NotFound";
 // Função para obter link de detalhes do departamento
 const getDepartmentDetailLink = (id: number) => `/departments/${id}`;
 
-// SVG Department Icon (mesmo do Sidebar)
+// SVG Department Icon
 const DepartmentIcon = ({
   className = "w-8 h-8",
 }: {
@@ -24,8 +24,18 @@ const DepartmentIcon = ({
     viewBox="0 0 24 24"
     stroke="currentColor"
   >
+    <rect
+      x={4}
+      y={4}
+      width={16}
+      height={16}
+      rx={3}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
     <path
-      d="M4 6v16h16V6M4 6L12 2l8 4"
+      d="M9 8v8M15 8v8M4 12h16"
       strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -33,23 +43,13 @@ const DepartmentIcon = ({
   </svg>
 );
 
-// StatusBadge com estilo igual ao de Position.tsx
-const StatusBadge = ({ active }: { active: boolean }) => (
-  <span
-    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full font-medium text-xs 
-      ${
-        active
-          ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-          : "bg-red-50 text-red-700 border border-red-200"
-      } transition duration-150`}
-  >
-    <span
-      className={`w-2 h-2 rounded-full 
-        ${active ? "bg-emerald-400" : "bg-red-400"}
-        border border-white shadow`}
-    />
-    {active ? "Ativo" : "Inativo"}
-  </span>
+// Badge visual para status
+const StatusBadge = ({ isActive }: { isActive: boolean }) => (
+  isActive ? (
+    <span className="inline-block text-green-700 bg-green-100 rounded px-3 py-1 text-sm font-semibold">Ativo</span>
+  ) : (
+    <span className="inline-block text-red-700 bg-red-100 rounded px-3 py-1 text-sm font-semibold">Inativo</span>
+  )
 );
 
 const DepartmentPage = () => {
@@ -58,21 +58,25 @@ const DepartmentPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState<boolean>(false);
 
-  // For edit panel
+  // Para painel de edição
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState<string>("");
-  // For create panel
-  const [newDeptValue, setNewDeptValue] = useState<string>("");
-  // For delete panel
+  const [editStatus, setEditStatus] = useState<boolean>(true);
+
+  // Para painel de criação
+  const [showCreatePanel, setShowCreatePanel] = useState(false);
+  const [newDepartmentValue, setNewDepartmentValue] = useState<string>("");
+  const [newStatus, setNewStatus] = useState<boolean>(true);
+
+  // Para painel de exclusão
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  // For modals
+  // Para painel de edição
   const [showEditPanel, setShowEditPanel] = useState(false);
-  const [showCreatePanel, setShowCreatePanel] = useState(false);
 
   const navigate = useNavigate();
 
-  // Fetch departments from API
+  // Buscar departamentos da API
   const fetchDepartments = async () => {
     setLoading(true);
     setError(null);
@@ -80,11 +84,8 @@ const DepartmentPage = () => {
       const data = await departmentService.getDepartments();
       setDepartments(data);
 
-      // If the API returns 404 or an empty array when this is a "not found" situation
       if (Array.isArray(data) && data.length === 0) {
-        // Optional: Only treat as not found if some condition applies
-        // Uncomment next line ONLY IF an empty list is "not found" for your context
-        // setNotFound(true);
+        // setNotFound(true); // Habilite se necessário
       }
     } catch (err: any) {
       if (err?.response?.status === 404) {
@@ -102,9 +103,10 @@ const DepartmentPage = () => {
     // eslint-disable-next-line
   }, []);
 
-  const handleEditClick = (id: number, currentName: string) => {
+  const handleEditClick = (id: number, currentName: string, isActive: boolean) => {
     setEditingId(id);
     setEditValue(currentName);
+    setEditStatus(isActive);
     setShowEditPanel(true);
   };
 
@@ -112,14 +114,19 @@ const DepartmentPage = () => {
     setEditValue(e.target.value);
   };
 
-  const handleEditSave = async () => {
-    if (editingId != null && editValue.trim()) {
-      const departmentToUpdate = departments.find((d) => d.id === editingId);
-      if (!departmentToUpdate) return;
+  const handleEditStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setEditStatus(e.target.value === "true");
+  };
 
+  const handleEditSave = async () => {
+    if (
+      editingId != null &&
+      editValue.trim() !== "" &&
+      typeof editStatus === "boolean"
+    ) {
       const updateDto: DepartmentUpdateDto = {
         name: editValue.trim(),
-        isActive: departmentToUpdate.isActive, // or true by default
+        isActive: editStatus,
       };
 
       try {
@@ -129,18 +136,20 @@ const DepartmentPage = () => {
         if (err?.response?.status === 404) {
           setNotFound(true);
         } else {
-          setError("Erro ao editar o departamento.");
+          setError("Erro ao editar departamento.");
         }
       }
     }
     setEditingId(null);
     setEditValue("");
+    setEditStatus(true);
     setShowEditPanel(false);
   };
 
   const handleEditCancel = () => {
     setEditingId(null);
     setEditValue("");
+    setEditStatus(true);
     setShowEditPanel(false);
   };
 
@@ -169,19 +178,24 @@ const DepartmentPage = () => {
   };
 
   const handleCreateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewDeptValue(e.target.value);
+    setNewDepartmentValue(e.target.value);
+  };
+
+  const handleCreateStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setNewStatus(e.target.value === "true");
   };
 
   const openCreatePanel = () => {
     setShowCreatePanel(true);
-    setNewDeptValue("");
+    setNewDepartmentValue("");
+    setNewStatus(true);
   };
 
   const handleCreate = async () => {
-    if (newDeptValue.trim()) {
+    if (newDepartmentValue.trim() !== "") {
       const createDto: DepartmentCreateDto = {
-        name: newDeptValue.trim(),
-        isActive: true,
+        name: newDepartmentValue.trim(),
+        isActive: newStatus,
       };
       try {
         await departmentService.createDepartment(createDto);
@@ -194,45 +208,47 @@ const DepartmentPage = () => {
         }
       }
     }
-    setNewDeptValue("");
+    setNewDepartmentValue("");
+    setNewStatus(true);
     setShowCreatePanel(false);
   };
 
   const handleCreateCancel = () => {
-    setNewDeptValue("");
+    setNewDepartmentValue("");
+    setNewStatus(true);
     setShowCreatePanel(false);
   };
 
-  // Handler para redirecionar para a página de detalhes do departamento
+  // Handler para redirecionar para detalhes
   const handleDepartmentSelect = (id: number) => {
     navigate(getDepartmentDetailLink(id));
   };
 
-  // If the page is not found (API 404 or forced condition), render NotFound
   if (notFound) {
     return <NotFound />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 flex flex-col items-center py-10 px-4">
-      <section className="w-full max-w-5xl rounded-3xl bg-white border border-gray-200 shadow-lg flex flex-col px-6 py-8 gap-6 transition-all duration-300">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-8 w-full">
-          <span className="flex items-center gap-3 sm:gap-6">
-            <span className="text-blue-700 drop-shadow-lg">
-              <DepartmentIcon className="w-12 h-12 sm:w-14 sm:h-14" />
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-8 px-2 sm:py-14">
+      <section className="w-full max-w-5xl shadow rounded-2xl bg-white border border-gray-200 flex flex-col px-5 py-8 sm:px-12 sm:py-10 gap-6">
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between mb-6 w-full">
+          <span className="flex items-center gap-4 sm:gap-6">
+            <span className="text-blue-700">
+              <DepartmentIcon className="w-11 h-11 sm:w-14 sm:h-14" />
             </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight drop-shadow">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 drop-shadow-sm tracking-tight">
               Departamentos
             </h1>
           </span>
           <button
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl px-5 py-2.5 shadow-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base sm:text-lg w-full sm:w-auto justify-center"
+            className="inline-flex items-center bg-emerald-600 text-white font-semibold rounded-lg px-6 py-2.5 shadow hover:bg-emerald-700 transition-colors text-base gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-300"
             onClick={openCreatePanel}
             aria-label="Criar novo departamento"
             title="Criar novo departamento"
+            type="button"
           >
             <svg
-              className="w-6 h-6"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 20 20"
@@ -250,27 +266,21 @@ const DepartmentPage = () => {
             </span>
           </button>
         </div>
+
         {error && (
-          <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-5 py-3 font-bold mb-2 text-center">
+          <div className="bg-red-100 text-red-800 rounded px-4 py-2 mb-4">
             {error}
           </div>
         )}
-        <div className="overflow-x-auto rounded-xl border border-gray-100 shadow">
-          <table className="min-w-full bg-white text-base sm:text-lg border-separate border-spacing-0">
+
+        <div className="overflow-x-auto rounded-xl border border-gray-100">
+          <table className="min-w-full bg-white text-sm sm:text-base">
             <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="px-5 py-4 text-left text-gray-400 font-semibold tracking-wider w-10 sm:w-16 rounded-tl-xl">
-                  #
-                </th>
-                <th className="px-5 py-4 text-left text-gray-700 font-bold tracking-wider">
-                  Nome do Departamento
-                </th>
-                <th className="px-5 py-4 text-left text-gray-700 font-bold tracking-wider">
-                  Status
-                </th>
-                <th className="px-5 py-4 text-right text-gray-700 font-bold tracking-wider rounded-tr-xl">
-                  Ações
-                </th>
+              <tr className="bg-gray-100">
+                <th className="px-4 py-3 text-left text-gray-700 font-semibold w-10 sm:w-16">#</th>
+                <th className="px-4 py-3 text-left text-gray-700 font-semibold">Nome do Departamento</th>
+                <th className="px-4 py-3 text-center text-gray-700 font-semibold">Status</th>
+                <th className="px-4 py-3 text-right text-gray-700 font-semibold">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -278,7 +288,7 @@ const DepartmentPage = () => {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-5 py-16 text-center text-gray-400 text-lg sm:text-xl font-medium"
+                    className="px-4 py-10 text-center text-gray-400 text-lg"
                   >
                     Carregando...
                   </td>
@@ -287,7 +297,7 @@ const DepartmentPage = () => {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-5 py-16 text-center text-gray-500 text-lg sm:text-xl font-medium"
+                    className="px-4 py-10 text-center text-gray-400 text-lg"
                   >
                     Nenhum departamento encontrado.
                   </td>
@@ -296,13 +306,15 @@ const DepartmentPage = () => {
                 departments.map((department, idx) => (
                   <tr
                     key={department.id}
-                    className="border-t border-gray-100 hover:bg-blue-50/20 transition-colors"
+                    className="border-t last:border-b hover:bg-gray-50 transition"
                   >
-                    <td className="px-5 py-4 align-middle text-gray-500 font-semibold text-center">{idx + 1}</td>
-                    <td className="px-5 py-4 align-middle">
+                    <td className="px-4 py-3 align-middle text-center">
+                      {idx + 1}
+                    </td>
+                    <td className="px-4 py-3 align-middle">
                       <button
                         type="button"
-                        className="font-bold text-blue-700 hover:text-blue-900 hover:underline underline-offset-4 transition focus:outline-none focus:ring-2 focus:ring-blue-400 w-full text-left"
+                        className="font-bold text-blue-700 hover:text-blue-900 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 w-full text-left"
                         tabIndex={0}
                         onClick={() => handleDepartmentSelect(department.id)}
                         onKeyDown={(e) => {
@@ -317,23 +329,28 @@ const DepartmentPage = () => {
                         {department.name}
                       </button>
                     </td>
-                    <td className="px-5 py-4 align-middle">
-                      <StatusBadge active={!!department.isActive} />
+                    <td className="px-4 py-3 align-middle text-center">
+                      <StatusBadge isActive={department.isActive} />
                     </td>
-                    <td className="px-5 py-4 text-right whitespace-nowrap align-middle">
+                    <td className="px-4 py-3 text-right whitespace-nowrap align-middle">
                       <div className="flex justify-end gap-3">
-                        {/* Editar */}
+                        {/* EDITAR */}
                         <button
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200 text-sm font-bold shadow-sm transition duration-150 focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                          className="inline-flex items-center bg-yellow-100 text-yellow-800 font-medium rounded-md px-4 py-2 shadow hover:bg-yellow-200 transition-colors text-sm gap-2 focus:outline-none focus:ring-2 focus:ring-yellow-300"
                           title="Editar departamento"
                           aria-label="Editar departamento"
+                          type="button"
                           onClick={() =>
-                            handleEditClick(department.id, department.name)
+                            handleEditClick(
+                              department.id,
+                              department.name,
+                              department.isActive
+                            )
                           }
                         >
                           <svg
-                            width={20}
-                            height={20}
+                            width={16}
+                            height={16}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 20 20"
@@ -348,16 +365,17 @@ const DepartmentPage = () => {
                           <span className="hidden sm:inline">Editar</span>
                         </button>
 
-                        {/* Excluir */}
+                        {/* EXCLUIR */}
                         <button
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-sm font-bold shadow-sm transition duration-150 focus:outline-none focus:ring-2 focus:ring-red-300"
+                          className="inline-flex items-center bg-red-50 text-red-700 font-medium rounded-md px-4 py-2 shadow hover:bg-red-100 transition-colors text-sm gap-2 focus:outline-none focus:ring-2 focus:ring-red-300"
                           title="Excluir departamento"
                           aria-label="Excluir departamento"
+                          type="button"
                           onClick={() => handleDelete(department.id)}
                         >
                           <svg
-                            width={20}
-                            height={20}
+                            width={16}
+                            height={16}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 20 20"
@@ -395,16 +413,32 @@ const DepartmentPage = () => {
         type="edit"
         title="Editar Departamento"
       >
-        <input
-          className="border border-gray-300 rounded-lg px-4 py-3 min-w-0 w-full sm:min-w-[250px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-base placeholder-gray-400 bg-gray-50 font-medium transition"
-          value={editValue}
-          onChange={handleEditChange}
-          autoFocus
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleEditSave();
-            if (e.key === "Escape") handleEditCancel();
-          }}
-        />
+        <div className="flex flex-col gap-5">
+          <input
+            className="border rounded px-4 py-2 min-w-0 w-full sm:min-w-[220px] focus:ring-blue-500 focus:border-blue-500 outline-none text-base"
+            value={editValue}
+            onChange={handleEditChange}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleEditSave();
+              if (e.key === "Escape") handleEditCancel();
+            }}
+          />
+          <div className="flex flex-col gap-1">
+            <select
+              className="border rounded px-4 py-2 w-full sm:min-w-[220px] text-base"
+              value={String(editStatus)}
+              onChange={handleEditStatusChange}
+            >
+              <option value="true">Ativo</option>
+              <option value="false">Inativo</option>
+            </select>
+            {/* Detalhe visual do status selecionado */}
+            <div>
+              <StatusBadge isActive={editStatus} />
+            </div>
+          </div>
+        </div>
       </ActionPanel>
 
       {/* Painel de Criação */}
@@ -416,17 +450,33 @@ const DepartmentPage = () => {
         type="new"
         title="Novo Departamento"
       >
-        <input
-          className="border border-gray-300 rounded-lg px-4 py-3 min-w-0 w-full sm:min-w-[250px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-base placeholder-gray-400 bg-gray-50 font-medium transition"
-          placeholder="Nome do novo departamento"
-          value={newDeptValue}
-          onChange={handleCreateChange}
-          autoFocus
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleCreate();
-            if (e.key === "Escape") handleCreateCancel();
-          }}
-        />
+        <div className="flex flex-col gap-5">
+          <input
+            className="border rounded px-4 py-2 min-w-0 w-full sm:min-w-[220px] focus:ring-blue-500 focus:border-blue-500 outline-none text-base"
+            placeholder="Nome do novo departamento"
+            value={newDepartmentValue}
+            onChange={handleCreateChange}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreate();
+              if (e.key === "Escape") handleCreateCancel();
+            }}
+          />
+          <div className="flex flex-col gap-1">
+            <select
+              className="border rounded px-4 py-2 w-full sm:min-w-[220px] text-base"
+              value={String(newStatus)}
+              onChange={handleCreateStatusChange}
+            >
+              <option value="true">Ativo</option>
+              <option value="false">Inativo</option>
+            </select>
+            {/* Detalhe visual do status selecionado */}
+            <div>
+              <StatusBadge isActive={newStatus} />
+            </div>
+          </div>
+        </div>
       </ActionPanel>
 
       {/* Painel de Exclusão */}
@@ -439,9 +489,9 @@ const DepartmentPage = () => {
         title="Confirmação de Exclusão"
         confirmText="Excluir"
       >
-        <p className="text-gray-700 text-base font-semibold text-center">
-          Tem certeza que deseja excluir este departamento?
-        </p>
+        <div className="py-2 px-1">
+          <p className="text-base text-gray-800 text-center">Tem certeza que deseja excluir este departamento?</p>
+        </div>
       </ActionPanel>
     </div>
   );

@@ -22,6 +22,37 @@ const PositionIcon = ({
   </svg>
 );
 
+// Novo SVG de Departamento baseado em @Department.tsx (21-43)
+const DepartmentIcon = ({
+  className = "w-7 h-7",
+}: {
+  className?: string;
+}) => (
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <rect
+      x={4}
+      y={4}
+      width={16}
+      height={16}
+      rx={3}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9 8v8M15 8v8M4 12h16"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 type SidebarProps = {
   sidebarOpen: boolean;
   setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -156,9 +187,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             title="Departamentos"
           >
             <span>
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path d="M4 6v16h16V6M4 6L12 2l8 4" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              {/* Novo SVG de Departamento */}
+              <DepartmentIcon />
             </span>
             {!collapsed && "Departamentos"}
           </Link>

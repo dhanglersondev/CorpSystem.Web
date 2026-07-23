@@ -48,11 +48,13 @@ const PositionPage = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const [editDepartmentId, setEditDepartmentId] = useState<number | null>(null);
+  const [editIsActive, setEditIsActive] = useState<boolean>(true);
 
   // For create panel
   const [showCreatePanel, setShowCreatePanel] = useState(false);
   const [newPositionValue, setNewPositionValue] = useState<string>("");
   const [newDepartmentId, setNewDepartmentId] = useState<number | null>(null);
+  const [newIsActive, setNewIsActive] = useState<boolean>(true);
 
   // For delete panel
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -69,11 +71,7 @@ const PositionPage = () => {
     try {
       const data = await positionService.getPositions();
       setPositions(data);
-
-      // Se a API retornar 404 ou lista vazia para "not found"
-      if (Array.isArray(data) && data.length === 0) {
-        // setNotFound(true); // Habilite se necessário
-      }
+      // if (Array.isArray(data) && data.length === 0) { /* setNotFound(true); */ }
     } catch (err: any) {
       if (err?.response?.status === 404) {
         setNotFound(true);
@@ -105,6 +103,10 @@ const PositionPage = () => {
     setEditingId(id);
     setEditValue(currentTitle);
     setEditDepartmentId(departmentId);
+
+    const pos = positions.find((p) => p.id === id);
+    setEditIsActive(pos?.isActive ?? true);
+
     setShowEditPanel(true);
   };
 
@@ -112,23 +114,26 @@ const PositionPage = () => {
     setEditValue(e.target.value);
   };
 
+  // Departamento não pode ser editado durante a edição - não será chamado no painel de edição de cargo
   const handleEditDepartmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setEditDepartmentId(Number(e.target.value));
   };
 
+  const handleEditIsActiveSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setEditIsActive(e.target.value === "true");
+  };
+
+  // Troquei o toggle (handleEditIsActiveChange) pelo select, logo o handler só é chamado na confirmação.
   const handleEditSave = async () => {
     if (
       editingId != null &&
       editValue.trim() &&
       editDepartmentId != null
     ) {
-      const positionToUpdate = positions.find((p) => p.id === editingId);
-      if (!positionToUpdate) return;
-
       const updateDto: PositionUpdateDto = {
         title: editValue.trim(),
         departmentId: editDepartmentId,
-        isActive: positionToUpdate.isActive,
+        isActive: editIsActive,
       };
 
       try {
@@ -145,6 +150,7 @@ const PositionPage = () => {
     setEditingId(null);
     setEditValue("");
     setEditDepartmentId(null);
+    setEditIsActive(true);
     setShowEditPanel(false);
   };
 
@@ -152,6 +158,7 @@ const PositionPage = () => {
     setEditingId(null);
     setEditValue("");
     setEditDepartmentId(null);
+    setEditIsActive(true);
     setShowEditPanel(false);
   };
 
@@ -187,12 +194,17 @@ const PositionPage = () => {
     setNewDepartmentId(Number(e.target.value));
   };
 
+  const handleNewIsActiveSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setNewIsActive(e.target.value === "true");
+  };
+
   const openCreatePanel = () => {
     setShowCreatePanel(true);
     setNewPositionValue("");
     setNewDepartmentId(
       departments.length > 0 ? departments[0].id : null
     );
+    setNewIsActive(true);
   };
 
   const handleCreate = async () => {
@@ -200,7 +212,7 @@ const PositionPage = () => {
       const createDto: PositionCreateDto = {
         title: newPositionValue.trim(),
         departmentId: newDepartmentId,
-        isActive: true,
+        isActive: newIsActive,
       };
       try {
         await positionService.createPosition(createDto);
@@ -215,12 +227,14 @@ const PositionPage = () => {
     }
     setNewPositionValue("");
     setNewDepartmentId(null);
+    setNewIsActive(true);
     setShowCreatePanel(false);
   };
 
   const handleCreateCancel = () => {
     setNewPositionValue("");
     setNewDepartmentId(null);
+    setNewIsActive(true);
     setShowCreatePanel(false);
   };
 
@@ -246,13 +260,14 @@ const PositionPage = () => {
             </h1>
           </span>
           <button
-            className="flex items-center bg-blue-600 text-white font-semibold rounded px-3 py-2 sm:px-4 hover:bg-blue-700 transition text-sm sm:text-base shadow w-full sm:w-auto justify-center"
+            className="inline-flex items-center bg-emerald-600 text-white font-semibold rounded-md px-4 py-2 shadow hover:bg-emerald-700 transition-colors text-base gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-300"
             onClick={openCreatePanel}
             aria-label="Criar novo cargo"
             title="Criar novo cargo"
+            type="button"
           >
             <svg
-              className="w-5 h-5 mr-2"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 20 20"
@@ -285,11 +300,11 @@ const PositionPage = () => {
                 <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold">
                   Nome do Cargo
                 </th>
-                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold">
-                  Departamento
-                </th>
                 <th className="px-2 py-2 sm:px-4 sm:py-3 text-center text-gray-700 font-semibold">
                   Status
+                </th>
+                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold">
+                  Departamento
                 </th>
                 <th className="px-2 py-2 sm:px-4 sm:py-3 text-right text-gray-700 font-semibold">
                   Ações
@@ -342,26 +357,49 @@ const PositionPage = () => {
                         {position.title}
                       </button>
                     </td>
+                    {/* STATUS DO CARGO (estilo igual do Department.js, status abaixo do nome/cargo, acima do departamento) */}
+                    <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle text-center">
+                      {editingId === position.id && showEditPanel ? (
+                        <div className="flex flex-col items-center w-full">
+                          {/* Para ocupar o mesmo tamanho do campo de departamento e nome, usamos w-full e as mesmas classes do input/textbox */}
+                          <select
+                            className="border rounded px-3 py-1 w-full sm:min-w-[180px] text-sm text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            value={editIsActive ? "true" : "false"}
+                            onChange={handleEditIsActiveSelectChange}
+                          >
+                            <option value="true">Ativo</option>
+                            <option value="false">Inativo</option>
+                          </select>
+                          <span className="text-xs mt-1 text-gray-700">
+                            {editIsActive ? (
+                              <span className="inline-block text-green-700 bg-green-100 rounded px-2 py-1 text-xs font-semibold">Ativo</span>
+                            ) : (
+                              <span className="inline-block text-red-700 bg-red-100 rounded px-2 py-1 text-xs font-semibold">Inativo</span>
+                            )}
+                          </span>
+                        </div>
+                      ) : (
+                        position.isActive ? (
+                          <span className="inline-block text-green-700 bg-green-100 rounded px-2 py-1 text-xs font-semibold">Ativo</span>
+                        ) : (
+                          <span className="inline-block text-red-700 bg-red-100 rounded px-2 py-1 text-xs font-semibold">Inativo</span>
+                        )
+                      )}
+                    </td>
                     <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle">
                       {
                         departments.find((d) => d.id === position.departmentId)
                           ?.name ?? "—"
                       }
                     </td>
-                    <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle text-center">
-                      {position.isActive ? (
-                        <span className="inline-block text-green-700 bg-green-100 rounded px-2 py-1 text-xs font-semibold">Ativo</span>
-                      ) : (
-                        <span className="inline-block text-red-700 bg-red-100 rounded px-2 py-1 text-xs font-semibold">Inativo</span>
-                      )}
-                    </td>
                     <td className="px-2 py-2 sm:px-4 sm:py-3 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">
-                        {/* Editar */}
+                        {/* EDITAR: botão igual ao do Department */}
                         <button
-                          className="flex items-center justify-center gap-2 px-2 sm:px-3 py-1.5 bg-yellow-400 text-yellow-900 rounded hover:bg-yellow-500 transition text-xs sm:text-sm"
+                          className="inline-flex items-center bg-yellow-100 text-yellow-800 font-medium rounded-md px-3 py-1.5 shadow hover:bg-yellow-200 transition-colors text-sm gap-2 focus:outline-none focus:ring-2 focus:ring-yellow-300"
                           title="Editar cargo"
                           aria-label="Editar cargo"
+                          type="button"
                           onClick={() =>
                             handleEditClick(
                               position.id,
@@ -387,11 +425,12 @@ const PositionPage = () => {
                           <span className="hidden sm:inline">Editar</span>
                         </button>
 
-                        {/* Excluir */}
+                        {/* EXCLUIR: botão igual ao do Department */}
                         <button
-                          className="flex items-center justify-center gap-2 px-2 sm:px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition text-xs sm:text-sm"
+                          className="inline-flex items-center bg-red-50 text-red-700 font-medium rounded-md px-3 py-1.5 shadow hover:bg-red-100 transition-colors text-sm gap-2 focus:outline-none focus:ring-2 focus:ring-red-300"
                           title="Excluir cargo"
                           aria-label="Excluir cargo"
+                          type="button"
                           onClick={() => handleDelete(position.id)}
                         >
                           <svg
@@ -445,20 +484,35 @@ const PositionPage = () => {
               if (e.key === "Escape") handleEditCancel();
             }}
           />
-          <select
-            className="border rounded px-3 py-1 w-full sm:min-w-[180px] text-sm"
-            value={editDepartmentId ?? ""}
-            onChange={handleEditDepartmentChange}
-          >
-            <option value="" disabled>
-              Selecione o departamento
-            </option>
-            {departments.map((d) => (
-              <option value={d.id} key={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
+          {/* Status ocupa o mesmo tamanho dos demais */}
+          <div className="flex flex-col mt-0.5 w-full">
+            <span className="text-xs text-gray-600 mb-1">Status do cargo</span>
+            <select
+              className="border rounded px-3 py-1 w-full sm:min-w-[180px] text-sm text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500 outline-none"
+              value={editIsActive ? "true" : "false"}
+              onChange={handleEditIsActiveSelectChange}
+            >
+              <option value="true">Ativo</option>
+              <option value="false">Inativo</option>
+            </select>
+            <span className="text-xs mt-1 text-gray-700">
+              {editIsActive ? (
+                <span className="inline-block text-green-700 bg-green-100 rounded px-2 py-1 text-xs font-semibold">Ativo</span>
+              ) : (
+                <span className="inline-block text-red-700 bg-red-100 rounded px-2 py-1 text-xs font-semibold">Inativo</span>
+              )}
+            </span>
+          </div>
+          {/* Departamento não pode ser editado durante edição, apenas exibido */}
+          <input
+            className="border rounded px-3 py-1 w-full sm:min-w-[180px] text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+            value={
+              departments.find((d) => d.id === editDepartmentId)?.name || ""
+            }
+            disabled
+            readOnly
+            tabIndex={-1}
+          />
         </div>
       </ActionPanel>
 
@@ -483,6 +537,25 @@ const PositionPage = () => {
               if (e.key === "Escape") handleCreateCancel();
             }}
           />
+          {/* Seleção do status ocupa o mesmo tamanho dos demais */}
+          <div className="flex flex-col mt-0.5 w-full">
+            <span className="text-xs text-gray-600 mb-1">Status do cargo</span>
+            <select
+              className="border rounded px-3 py-1 w-full sm:min-w-[180px] text-sm text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500 outline-none"
+              value={newIsActive ? "true" : "false"}
+              onChange={handleNewIsActiveSelectChange}
+            >
+              <option value="true">Ativo</option>
+              <option value="false">Inativo</option>
+            </select>
+            <span className="text-xs mt-1 text-gray-700">
+              {newIsActive ? (
+                <span className="inline-block text-green-700 bg-green-100 rounded px-2 py-1 text-xs font-semibold">Ativo</span>
+              ) : (
+                <span className="inline-block text-red-700 bg-red-100 rounded px-2 py-1 text-xs font-semibold">Inativo</span>
+              )}
+            </span>
+          </div>
           <select
             className="border rounded px-3 py-1 w-full sm:min-w-[180px] text-sm"
             value={newDepartmentId ?? ""}
