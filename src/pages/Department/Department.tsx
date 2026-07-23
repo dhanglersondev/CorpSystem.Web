@@ -229,7 +229,7 @@ const DepartmentPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-8 px-2 sm:py-14">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-2 sm:py-14">
       <section className="w-full max-w-5xl shadow rounded-2xl bg-white border border-gray-200 flex flex-col px-5 py-8 sm:px-12 sm:py-10 gap-6">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between mb-6 w-full">
           <span className="flex items-center gap-4 sm:gap-6">
@@ -277,10 +277,18 @@ const DepartmentPage = () => {
           <table className="min-w-full bg-white text-sm sm:text-base">
             <thead>
               <tr className="bg-gray-100">
-                <th className="px-4 py-3 text-left text-gray-700 font-semibold w-10 sm:w-16">#</th>
-                <th className="px-4 py-3 text-left text-gray-700 font-semibold">Nome do Departamento</th>
-                <th className="px-4 py-3 text-center text-gray-700 font-semibold">Status</th>
-                <th className="px-4 py-3 text-right text-gray-700 font-semibold">Ações</th>
+                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold w-8 sm:w-auto">
+                  #
+                </th>
+                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-gray-700 font-semibold">
+                  Nome do Departamento
+                </th>
+                <th className="px-2 py-2 sm:px-4 sm:py-3 text-center text-gray-700 font-semibold">
+                  Status
+                </th>
+                <th className="px-2 py-2 sm:px-4 sm:py-3 text-right text-gray-700 font-semibold">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -288,7 +296,7 @@ const DepartmentPage = () => {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-4 py-10 text-center text-gray-400 text-lg"
+                    className="px-2 py-7 sm:px-4 sm:py-8 text-center text-gray-400 text-base sm:text-lg"
                   >
                     Carregando...
                   </td>
@@ -297,7 +305,7 @@ const DepartmentPage = () => {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-4 py-10 text-center text-gray-400 text-lg"
+                    className="px-2 py-7 sm:px-4 sm:py-8 text-center text-gray-400 text-base sm:text-lg"
                   >
                     Nenhum departamento encontrado.
                   </td>
@@ -311,7 +319,7 @@ const DepartmentPage = () => {
                     <td className="px-4 py-3 align-middle text-center">
                       {idx + 1}
                     </td>
-                    <td className="px-4 py-3 align-middle">
+                    <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle">
                       <button
                         type="button"
                         className="font-bold text-blue-700 hover:text-blue-900 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 w-full text-left"
@@ -329,14 +337,19 @@ const DepartmentPage = () => {
                         {department.name}
                       </button>
                     </td>
-                    <td className="px-4 py-3 align-middle text-center">
-                      <StatusBadge isActive={department.isActive} />
+                    {/* STATUS DO DEPARTAMENTO (estilo igual do Position.js, status destacado) */}
+                    <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle text-center">
+                      {department.isActive ? (
+                        <span className="inline-block text-green-700 bg-green-100 rounded px-2 py-1 text-xs font-semibold">Ativo</span>
+                      ) : (
+                        <span className="inline-block text-red-700 bg-red-100 rounded px-2 py-1 text-xs font-semibold">Inativo</span>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap align-middle">
-                      <div className="flex justify-end gap-3">
-                        {/* EDITAR */}
+                    <td className="px-2 py-2 sm:px-4 sm:py-3 text-right whitespace-nowrap">
+                      <div className="flex justify-end gap-2">
+                        {/* EDITAR: botão igual ao do Position */}
                         <button
-                          className="inline-flex items-center bg-yellow-100 text-yellow-800 font-medium rounded-md px-4 py-2 shadow hover:bg-yellow-200 transition-colors text-sm gap-2 focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                          className="inline-flex items-center bg-yellow-100 text-yellow-800 font-medium rounded-md px-3 py-1.5 shadow hover:bg-yellow-200 transition-colors text-sm gap-2 focus:outline-none focus:ring-2 focus:ring-yellow-300"
                           title="Editar departamento"
                           aria-label="Editar departamento"
                           type="button"
@@ -364,10 +377,9 @@ const DepartmentPage = () => {
                           </svg>
                           <span className="hidden sm:inline">Editar</span>
                         </button>
-
-                        {/* EXCLUIR */}
+                        {/* EXCLUIR: botão igual ao do Position */}
                         <button
-                          className="inline-flex items-center bg-red-50 text-red-700 font-medium rounded-md px-4 py-2 shadow hover:bg-red-100 transition-colors text-sm gap-2 focus:outline-none focus:ring-2 focus:ring-red-300"
+                          className="inline-flex items-center bg-red-50 text-red-700 font-medium rounded-md px-3 py-1.5 shadow hover:bg-red-100 transition-colors text-sm gap-2 focus:outline-none focus:ring-2 focus:ring-red-300"
                           title="Excluir departamento"
                           aria-label="Excluir departamento"
                           type="button"
@@ -400,6 +412,7 @@ const DepartmentPage = () => {
                 ))
               )}
             </tbody>
+    
           </table>
         </div>
       </section>

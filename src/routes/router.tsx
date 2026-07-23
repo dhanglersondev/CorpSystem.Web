@@ -7,6 +7,7 @@ import DepartmentPage from "../pages/Department/Department";
 import DepartmentDetail from "../pages/Department/DepartmentDetail";
 import PositionPage from "../pages/Position/Position";
 import PositionDetail from "../pages/Position/PositionDetail";
+import EmployeePage from "../pages/Employee/Employee";
 import NotFound from "../pages/NotFound/NotFound";
 
 export const router = createBrowserRouter([
@@ -32,6 +33,10 @@ export const router = createBrowserRouter([
       {
         path: "/positions/:id",
         element: <PositionDetail />,
+      },
+      {
+        path: "/employees",
+        element: <EmployeePage />,
       },
       {
         path: "*",

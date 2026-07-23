@@ -1,14 +1,36 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   positionService,
-  type PositionResponseDto,
+  type PositionDetailsDto, // Correto conforme @src/services/positionService.ts
 } from "../../services/positionService";
 import {
   departmentService,
   type DepartmentResponseDto,
 } from "../../services/departmentService";
-// employee inicialmente ficticio
+import NotFound from "../NotFound/NotFound";
+
+// SVG Position Icon (segue padrão visual visto em DepartmentDetail)
+const PositionIcon = ({
+  className = "w-8 h-8",
+}: {
+  className?: string;
+}) => (
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      d="M12 2l7 7-7 13-7-13z"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 type EmployeeResponseDto = {
   id: number;
   name: string;
@@ -16,10 +38,10 @@ type EmployeeResponseDto = {
   isActive: boolean;
   positionId: number;
 };
-// Simula um serviço de empregados fake
+
+// serviço simulado para dados de empregados (pode ser futuramente substituído)
 const employeeService = {
   async getEmployees(): Promise<EmployeeResponseDto[]> {
-    // Retorna dados fictícios, pode trocar/ampliar conforme desejado
     return [
       {
         id: 1,
@@ -46,57 +68,26 @@ const employeeService = {
   },
 };
 
-import NotFound from "../NotFound/NotFound";
-
-// SVG Position Icon (segue padrão visual visto em DepartmentDetail)
-const PositionIcon = ({
-  className = "w-8 h-8",
-}: {
-  className?: string;
-}) => (
-  <svg
-    className={className}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      d="M12 2l7 7-7 13-7-13z"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 const PositionDetail = () => {
   const { id } = useParams<{ id: string }>();
   const numericId = Number(id);
-  const navigate = useNavigate();
 
-  const [position, setPosition] = useState<PositionResponseDto | null>(null);
+  const [position, setPosition] = useState<PositionDetailsDto | null>(null);
   const [department, setDepartment] = useState<DepartmentResponseDto | null>(null);
   const [employees, setEmployees] = useState<EmployeeResponseDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState<boolean>(false);
 
-  // Painéis que podem ser usados p/ edição/exclusão futura: (mantendo padrão)
-  const [showEditPanel, setShowEditPanel] = useState(false);
-  const [editTitle, setEditTitle] = useState<string>("");
-  const [editStatus, setEditStatus] = useState<boolean>(true);
-  const [editDepartmentId, setEditDepartmentId] = useState<number | null>(null);
-  const [showDeletePanel, setShowDeletePanel] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
-  // Buscar detalhes da posição
+  // Busca detalhes da posição usando PositionDetailsDto
   const fetchPosition = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await positionService.getPosition(numericId);
+      const data = await positionService.getPosition(numericId); // Retorna PositionDetailsDto
       setPosition(data);
-      // Busca departamento relacionado
+
+      // O próprio DTO já possui departmentName, mas se quiser buscar detalhes completos:
       if (data?.departmentId) {
         try {
           const dep = await departmentService.getDepartment(data.departmentId);
@@ -140,12 +131,8 @@ const PositionDetail = () => {
     // eslint-disable-next-line
   }, [id]);
 
-  // Painéis de edição/exclusão (mantidos como referência, podem ser removidos)
-  // Omitidos handlers, a menos que solicitado.
-
   if (notFound) return <NotFound />;
 
-  // Mensagem centralizada se estiver carregando ou erro
   if (loading || error) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4">
@@ -222,10 +209,12 @@ const PositionDetail = () => {
                     {department.name}
                   </Link>
                 ) : (
-                  <span className="text-gray-400 italic">Não vinculado</span>
+                  <span className="text-gray-400 italic">
+                    {/* Usa departmentName do PositionDetailsDto se o objeto department não está disponível */}
+                    {position.departmentName || "Não vinculado"}
+                  </span>
                 )}
               </div>
-              {/* Botões editar/excluir removidos para não afetar o padrão, exceto se desejado */}
             </div>
 
             {/* Lista/tabela de funcionários */}
@@ -304,7 +293,6 @@ const PositionDetail = () => {
           </>
         )}
       </section>
-      {/* Serviços/handlers ActionPanel (edição/exclusão) podem ser adicionados se necessário */}
     </div>
   );
 };

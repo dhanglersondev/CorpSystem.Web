@@ -192,21 +192,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </span>
             {!collapsed && "Departamentos"}
           </Link>
-          {/* Nenhuma rota para employees em router.tsx, mas mantém visual */}
-          <a
-            href="/employees"
-            className="flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200 opacity-60 pointer-events-none"
-            title="Funcionários (em breve)"
-            tabIndex={-1}
-            aria-disabled="true"
-          >
-            <span>
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path d="M16 21v-2a4 4 0 00-8 0v2M12 11a4 4 0 100-8 4 4 0 000 8z" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            {!collapsed && <span className="italic">Funcionários</span>}
-          </a>
           <Link
             to="/positions"
             className={`flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200
@@ -217,6 +202,19 @@ const Sidebar: React.FC<SidebarProps> = ({
               <PositionIcon />
             </span>
             {!collapsed && "Cargos"}
+          </Link>
+          <Link
+            to="/employees"
+            className={`flex items-center gap-3 px-2 py-1 rounded transition text-md w-full hover:bg-gray-200
+              ${location.pathname.startsWith("/employees") ? "bg-gray-200 font-semibold" : ""}`}
+            title="Funcionários"
+          >
+            <span>
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M16 21v-2a4 4 0 00-8 0v2M12 11a4 4 0 100-8 4 4 0 000 8z" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            {!collapsed && <span className="italic">Funcionários</span>}
           </Link>
         </nav>
       </div>
