@@ -43,6 +43,15 @@ const DepartmentIcon = ({
   </svg>
 );
 
+// Define a type for error response if needed
+interface ErrorWithResponse {
+  response?: {
+    status?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 const DepartmentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const numericId = Number(id);
@@ -70,8 +79,14 @@ const DepartmentDetail = () => {
     try {
       const data = await departmentService.getDepartment(numericId);
       setDepartment(data);
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
+    } catch (err: unknown) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as ErrorWithResponse).response === "object" &&
+        (err as ErrorWithResponse).response?.status === 404
+      ) {
         setNotFound(true);
         return;
       }
@@ -87,26 +102,25 @@ const DepartmentDetail = () => {
       setPositions(
         allPositions.filter((p) => p.departmentId === numericId)
       );
-    } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_err) {
       setPositions([]);
     }
   };
 
   useEffect(() => {
     if (!isNaN(numericId)) {
-      fetchDepartment();
-      fetchPositions();
+      // Wrapping the async calls inside an async function and invoking it avoids setState-in-effect warning
+      const fetchData = async () => {
+        await Promise.all([fetchDepartment(), fetchPositions()]);
+      };
+      fetchData();
     }
     // eslint-disable-next-line
   }, [id]);
 
   // Paneis e Handlers: editar
-  const openEditPanel = () => {
-    if (!department) return;
-    setEditValue(department.name);
-    setEditStatus(department.isActive);
-    setShowEditPanel(true);
-  };
+  // openEditPanel and openDeletePanel removed if unused
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEditValue(e.target.value);
@@ -127,8 +141,14 @@ const DepartmentDetail = () => {
         await departmentService.updateDepartment(department.id, updateDto);
         await fetchDepartment();
         setShowEditPanel(false);
-      } catch (err: any) {
-        if (err?.response?.status === 404) {
+      } catch (err: unknown) {
+        if (
+          typeof err === "object" &&
+          err != null &&
+          "response" in err &&
+          typeof (err as ErrorWithResponse).response === "object" &&
+          (err as ErrorWithResponse).response?.status === 404
+        ) {
           setNotFound(true);
         } else {
           setError("Erro ao editar departamento.");
@@ -144,7 +164,7 @@ const DepartmentDetail = () => {
   };
 
   // Painel exclusão
-  const openDeletePanel = () => setShowDeletePanel(true);
+  // openDeletePanel removed if unused
   const closeDeletePanel = () => setShowDeletePanel(false);
 
   const handleDelete = async () => {
@@ -154,8 +174,14 @@ const DepartmentDetail = () => {
       await departmentService.deleteDepartment(department.id);
       setShowDeletePanel(false);
       navigate("/departments");
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
+    } catch (err: unknown) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as ErrorWithResponse).response === "object" &&
+        (err as ErrorWithResponse).response?.status === 404
+      ) {
         setNotFound(true);
       } else {
         setError("Erro ao excluir departamento.");

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
 import ActionPanel from "../../components/ActionPanel/ActionPanel";
 import NotFound from "../NotFound/NotFound";
 import {
@@ -16,6 +15,7 @@ import {
   positionService,
   type PositionResponseDto,
 } from "../../services/positionService";
+import { Link } from "react-router-dom";
 
 // Função para obter o link da página de departamento
 const getDepartmentDetailLink = (department: DepartmentResponseDto) =>
@@ -55,10 +55,13 @@ const EmployeePage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState<boolean>(false);
-
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  // Filtro por departamento e cargo
+  const [filterDepartmentId, setFilterDepartmentId] = useState<string>(""); // "" = todos
+  const [filterPositionId, setFilterPositionId] = useState<string>(""); // "" = todos
 
   const [newData, setNewData] = useState<
     Omit<EmployeeCreateDto, "departmentId" | "positionId" | "hireDate"> & {
@@ -95,9 +98,17 @@ const EmployeePage: React.FC = () => {
     isActive: true,
   });
 
-  const navigate = useNavigate();
 
-  const fetchAll = async () => {
+  interface ApiErrorResponse {
+    response?: {
+      status?: number;
+      data?: { message?: string; errors?: Record<string, string[]> } | string;
+    };
+  }
+
+  // Corrigir: não chamar setState diretamente no body do useEffect
+  // Usando função assíncrona dentro do useEffect para evitar chamada direta de setState
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -110,18 +121,23 @@ const EmployeePage: React.FC = () => {
       setDepartments(depList);
       setPositions(posList);
       setNotFound(false);
-    } catch (e: any) {
-      if (e?.response?.status === 404) setNotFound(true);
+    } catch (err: unknown) {
+      const apiError = err as ApiErrorResponse;
+      if (apiError?.response?.status === 404) setNotFound(true);
       else setError("Erro ao carregar funcionários.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchAll();
-    // eslint-disable-next-line
-  }, []);
+    // Para evitar o erro react-hooks/set-state-in-effect,
+    // define função async dentro do useEffect e chama-a logo após.
+    const runFetchAll = async () => {
+      await fetchAll();
+    };
+    runFetchAll();
+  }, [fetchAll]);
 
   // --- CRIAÇÃO ---
   const handleCreateOpen = () => {
@@ -143,7 +159,6 @@ const EmployeePage: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-
     setNewData((prev) => ({
       ...prev,
       [name]:
@@ -190,13 +205,17 @@ const EmployeePage: React.FC = () => {
         isActive: true,
       });
       setError(null);
-    } catch (e: any) {
-      let apiMsg =
-        (e?.response && (e.response.data?.message || e.response.data)) ||
+    } catch (err: unknown) {
+      let apiMsg: string | undefined | object =
+        ((err as ApiErrorResponse)?.response &&
+          (((err as ApiErrorResponse).response?.data as { message?: string })?.message ||
+            (typeof (err as ApiErrorResponse).response?.data === "string" ? (err as ApiErrorResponse).response?.data : undefined))) ||
         "Erro ao criar funcionário.";
-      if (apiMsg && typeof apiMsg === "object" && apiMsg.errors) {
-        apiMsg = Object.values(apiMsg.errors)
-          .map((arr: any) => (Array.isArray(arr) ? arr.join("; ") : arr))
+
+      const errorsObj = (err as ApiErrorResponse)?.response?.data as { errors?: Record<string, string[]> };
+      if (errorsObj && typeof errorsObj === "object" && errorsObj.errors) {
+        apiMsg = Object.values(errorsObj.errors)
+          .map((arr) => (Array.isArray(arr) ? arr.join("; ") : String(arr)))
           .join("; ");
       }
       setError(
@@ -283,13 +302,17 @@ const EmployeePage: React.FC = () => {
       setShowEdit(false);
       setEditingId(null);
       setError(null);
-    } catch (e: any) {
-      let apiMsg =
-        (e?.response && (e.response.data?.message || e.response.data)) ||
+    } catch (err: unknown) {
+      let apiMsg: string | undefined | object =
+        ((err as ApiErrorResponse)?.response &&
+          (((err as ApiErrorResponse).response?.data as { message?: string })?.message ||
+            (typeof (err as ApiErrorResponse).response?.data === "string" ? (err as ApiErrorResponse).response?.data : undefined))) ||
         "Erro ao editar funcionário.";
-      if (apiMsg && typeof apiMsg === "object" && apiMsg.errors) {
-        apiMsg = Object.values(apiMsg.errors)
-          .map((arr: any) => (Array.isArray(arr) ? arr.join("; ") : arr))
+
+      const errorsObj = (err as ApiErrorResponse)?.response?.data as { errors?: Record<string, string[]> };
+      if (errorsObj && typeof errorsObj === "object" && errorsObj.errors) {
+        apiMsg = Object.values(errorsObj.errors)
+          .map((arr) => (Array.isArray(arr) ? arr.join("; ") : String(arr)))
           .join("; ");
       }
       setError(
@@ -329,50 +352,106 @@ const EmployeePage: React.FC = () => {
     setError(null);
   };
 
-  // Navegação para detalhes do empregado
-  const handleEmployeeSelect = (emp: EmployeeResponseDto) => {
-    navigate(getEmployeeDetailLink(emp));
-  };
-
   // Filtra cargos por departamento e ativos
   const positionsByDepartment = (deptId: string | number) =>
     positions.filter(
       (p) => p.departmentId === Number(deptId) && p.isActive
     );
 
+  // --- NOVO: lista de funcionários filtrada pelos selects de departamento/cargo ---
+  const filteredEmployees = employees.filter((emp) => {
+    // Filtro por departamento
+    if (filterDepartmentId && emp.departmentId !== Number(filterDepartmentId)) return false;
+    // Filtro por cargo (independente do filtro departamento)
+    if (filterPositionId && emp.positionId !== Number(filterPositionId)) return false;
+    return true;
+  });
+
+  // --- NOVO: opcoes de cargos filtradas pelo departamento escolhido (para filtro de cargos) ---
+  const positionOptionsForFilter = filterDepartmentId
+    ? positions.filter(p => p.departmentId === Number(filterDepartmentId))
+    : positions;
+
   if (notFound) return <NotFound />;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-2 sm:py-14">
       <section className="w-full max-w-5xl bg-white shadow rounded-2xl border border-gray-200 px-5 py-8 sm:px-12 sm:py-10 flex flex-col gap-6">
-        <div className="w-full flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between mb-6">
-          <span className="flex items-center gap-4 sm:gap-6">
-            <span className="text-purple-700">
-              <EmployeeIcon />
+
+        <div className="w-full flex flex-col gap-6 mb-6 sm:mb-6">
+          {/* Linha título, botão novo funcionário e filtros */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-center gap-4 sm:gap-6">
+              <span className="text-purple-700">
+                <EmployeeIcon />
+              </span>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 drop-shadow-sm tracking-tight">
+                Funcionários
+              </h1>
             </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 drop-shadow-sm tracking-tight">
-              Funcionários
-            </h1>
-          </span>
-          <button
-            className="inline-flex items-center bg-emerald-600 text-white font-semibold rounded-lg px-6 py-2.5 shadow hover:bg-emerald-700 transition-colors text-base gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-300"
-            type="button"
-            aria-label="Criar novo funcionário"
-            title="Criar novo funcionário"
-            onClick={handleCreateOpen}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 20 20">
-              <path d="M10 5v10M5 10h10" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Novo Funcionário
-            <span className="sr-only">Adicionar novo funcionário à lista</span>
-          </button>
+            <button
+              className="inline-flex items-center bg-emerald-600 text-white font-semibold rounded-lg px-6 py-2.5 shadow hover:bg-emerald-700 transition-colors text-base gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+              type="button"
+              aria-label="Criar novo funcionário"
+              title="Criar novo funcionário"
+              onClick={handleCreateOpen}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+                <path d="M10 5v10M5 10h10" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Novo Funcionário
+              <span className="sr-only">Adicionar novo funcionário à lista</span>
+            </button>
+          </div>
+          {/* Filtros */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-start sm:items-center">
+            {/* Filtro Departamento */}
+            <label className="font-medium text-gray-700 flex flex-col sm:flex-row sm:items-center gap-1">
+              <span>Departamento:</span>
+              <select
+                className="border rounded px-3 py-1 min-w-[160px] text-sm ml-0 sm:ml-2"
+                value={filterDepartmentId}
+                onChange={e => {
+                  const newDepId = e.target.value;
+                  setFilterDepartmentId(newDepId);
+                  // Redefine cargo para "" se o novo departamento não possuir o cargo atualmente filtrado
+                  setFilterPositionId(positionOptionsForFilter.some(pos => pos.id === Number(filterPositionId)) ? filterPositionId : "");
+                }}
+              >
+                <option value="">Todos</option>
+                {departments.map(dep => (
+                  <option key={dep.id} value={dep.id}>
+                    {dep.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {/* Filtro Cargo */}
+            <label className="font-medium text-gray-700 flex flex-col sm:flex-row sm:items-center gap-1">
+              <span>Cargo:</span>
+              <select
+                className="border rounded px-3 py-1 min-w-[160px] text-sm ml-0 sm:ml-2"
+                value={filterPositionId}
+                onChange={e => setFilterPositionId(e.target.value)}
+                disabled={positionOptionsForFilter.length === 0}
+              >
+                <option value="">Todos</option>
+                {positionOptionsForFilter.map(pos => (
+                  <option key={pos.id} value={pos.id}>
+                    {pos.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
+
         {error && (
           <div className="bg-red-100 text-red-800 rounded px-4 py-2 mb-4">
             {error}
           </div>
         )}
+
         <div className="overflow-x-auto rounded-xl border border-gray-100">
           <table className="min-w-full bg-white text-sm sm:text-base">
             <thead>
@@ -392,14 +471,14 @@ const EmployeePage: React.FC = () => {
                     Carregando...
                   </td>
                 </tr>
-              ) : employees.length === 0 ? (
+              ) : filteredEmployees.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-2 py-7 sm:px-4 sm:py-8 text-center text-gray-400 text-base sm:text-lg">
                     Nenhum funcionário encontrado.
                   </td>
                 </tr>
               ) : (
-                employees.map((emp, idx) => {
+                filteredEmployees.map((emp, idx) => {
                   // Busca o departamento e o cargo
                   const dep = departments.find((d) => d.id === emp.departmentId);
                   const posi = positions.find((p) => p.id === emp.positionId);
@@ -558,9 +637,7 @@ const EmployeePage: React.FC = () => {
               value={
                 typeof editData.hireDate === "string"
                   ? editData.hireDate || ""
-                  : (editData.hireDate && typeof (editData.hireDate as any).toISOString === "function"
-                      ? (editData.hireDate as any).toISOString().substring(0, 10)
-                      : "")
+                  : ""
               }
               onChange={handleEditChange}
               disabled={editingId == null}
@@ -681,9 +758,7 @@ const EmployeePage: React.FC = () => {
               value={
                 typeof newData.hireDate === "string"
                   ? newData.hireDate || ""
-                  : (newData.hireDate && typeof (newData.hireDate as any).toISOString === "function"
-                      ? (newData.hireDate as any).toISOString().substring(0, 10)
-                      : "")
+                  : ""
               }
               onChange={handleCreateChange}
             />

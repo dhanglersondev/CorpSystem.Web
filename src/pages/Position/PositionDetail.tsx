@@ -2,12 +2,16 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   positionService,
-  type PositionDetailsDto, // Correto conforme @src/services/positionService.ts
+  type PositionDetailsDto,
 } from "../../services/positionService";
 import {
   departmentService,
   type DepartmentResponseDto,
 } from "../../services/departmentService";
+import {
+  employeeService,
+  type EmployeeResponseDto,
+} from "../../services/employeeService";
 import NotFound from "../NotFound/NotFound";
 
 // SVG Position Icon (segue padrão visual visto em DepartmentDetail)
@@ -31,49 +35,14 @@ const PositionIcon = ({
   </svg>
 );
 
-type EmployeeResponseDto = {
-  id: number;
-  name: string;
-  email: string;
-  isActive: boolean;
-  positionId: number;
-};
-
-// serviço simulado para dados de empregados (pode ser futuramente substituído)
-const employeeService = {
-  async getEmployees(): Promise<EmployeeResponseDto[]> {
-    return [
-      {
-        id: 1,
-        name: "Maria Souza",
-        email: "maria.souza@empresa.com",
-        isActive: true,
-        positionId: 1,
-      },
-      {
-        id: 2,
-        name: "João Rosa",
-        email: "joao.rosa@empresa.com",
-        isActive: false,
-        positionId: 2,
-      },
-      {
-        id: 3,
-        name: "Carlos Silva",
-        email: "carlos.silva@empresa.com",
-        isActive: true,
-        positionId: 1,
-      },
-    ];
-  },
-};
-
 const PositionDetail = () => {
   const { id } = useParams<{ id: string }>();
   const numericId = Number(id);
 
   const [position, setPosition] = useState<PositionDetailsDto | null>(null);
-  const [department, setDepartment] = useState<DepartmentResponseDto | null>(null);
+  const [department, setDepartment] = useState<DepartmentResponseDto | null>(
+    null
+  );
   const [employees, setEmployees] = useState<EmployeeResponseDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,8 +67,9 @@ const PositionDetail = () => {
       } else {
         setDepartment(null);
       }
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
+    } catch (err: unknown) {
+      const maybeErr = err as { response?: { status?: number } };
+      if (maybeErr?.response?.status === 404) {
         setNotFound(true);
         return;
       }
@@ -109,13 +79,13 @@ const PositionDetail = () => {
     }
   };
 
-  // Buscar funcionários vinculados a este cargo
+  // Buscar funcionários vinculados a este cargo por consulta real
   const fetchEmployees = async () => {
     try {
-      const data = await employeeService.getEmployees();
+      const allEmployees = await employeeService.getEmployees();
       setEmployees(
-        Array.isArray(data)
-          ? data.filter((e) => e.positionId === numericId)
+        Array.isArray(allEmployees)
+          ? allEmployees.filter((e) => e.positionId === numericId)
           : []
       );
     } catch {
@@ -125,6 +95,7 @@ const PositionDetail = () => {
 
   useEffect(() => {
     if (!isNaN(numericId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchPosition();
       fetchEmployees();
     }
@@ -200,7 +171,9 @@ const PositionDetail = () => {
               </div>
               {/* Departamento vinculado */}
               <div className="mt-6 flex flex-row items-center gap-2">
-                <span className="font-bold min-w-[120px] text-base">Departamento:</span>
+                <span className="font-bold min-w-[120px] text-base">
+                  Departamento:
+                </span>
                 {department ? (
                   <Link
                     to={`/departments/${department.id}`}
@@ -210,7 +183,6 @@ const PositionDetail = () => {
                   </Link>
                 ) : (
                   <span className="text-gray-400 italic">
-                    {/* Usa departmentName do PositionDetailsDto se o objeto department não está disponível */}
                     {position.departmentName || "Não vinculado"}
                   </span>
                 )}

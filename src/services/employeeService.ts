@@ -1,8 +1,4 @@
-import { api } from "./api";
-
-/**
- * DTOs para operações de funcionário
- */
+// DTOs para Employee (funcionário)
 export interface EmployeeResponseDto {
   id: number;
   name: string;
@@ -13,6 +9,7 @@ export interface EmployeeResponseDto {
   isActive: boolean;
   positionId: number;
   departmentId: number;
+  // birthDate não faz parte do modelo principal aqui, apenas nos detalhes/DTOs de criação/atualização. 
 }
 
 export interface EmployeeDetailsDto {
@@ -27,6 +24,7 @@ export interface EmployeeDetailsDto {
   departmentName: string;
   positionId: number;
   positionTitle: string;
+  phone?: string;
 }
 
 export interface EmployeeCreateDto {
@@ -34,10 +32,11 @@ export interface EmployeeCreateDto {
   email: string;
   cpf: string;
   salary: number;
-  hireDate: string | Date;
+  hireDate: string; // ISO 8601 string (yyyy-MM-dd)
+  isActive: boolean;
   positionId: number;
   departmentId: number;
-  isActive: boolean;
+  phone?: string;
 }
 
 export interface EmployeeUpdateDto {
@@ -45,79 +44,91 @@ export interface EmployeeUpdateDto {
   email: string;
   cpf: string;
   salary: number;
-  hireDate: string | Date;
+  hireDate: string; // ISO 8601 string (yyyy-MM-dd)
+  isActive: boolean;
   positionId: number;
   departmentId: number;
-  isActive: boolean;
+  phone?: string;
 }
 
+/**
+ * Metadata de departamentos e cargos para cadastro de funcionário
+ */
+export interface EmployeeDepartmentMetadata {
+  departmentId: number;
+  departmentName: string;
+  positions: {
+    positionId: number;
+    positionTitle: string;
+  }[];
+}
+
+import { api } from "./api";
+
+/**
+ * Serviço para comunicação com a API Employee.
+ * Implementa métodos que espelham os endpoints do EmployeeController do backend.
+ */
 export const employeeService = {
   /**
    * GET: api/Employee
-   * Busca todos os funcionários.
+   * Obtém lista simplificada de funcionários.
+   * Corresponde ao GET: api/Employee do backend.
    */
   async getEmployees(): Promise<EmployeeResponseDto[]> {
-    // A API retorna todos os funcionários com ToResponseDto
     const response = await api.get<EmployeeResponseDto[]>("/Employee");
     return response.data;
   },
 
   /**
    * GET: api/Employee/{id}
-   * Busca detalhes de um funcionário.
+   * Obtém detalhes completos de um funcionário, incluindo departmentName e positionTitle.
+   * Corresponde ao GET: api/Employee/{id} do backend.
    */
   async getEmployee(id: number): Promise<EmployeeDetailsDto> {
-    // A API retorna EmployeeDetailsDto com dept & position names
     const response = await api.get<EmployeeDetailsDto>(`/Employee/${id}`);
     return response.data;
   },
 
   /**
+   * GET: api/Employee/metadata
+   * Lista todos os departamentos e seus cargos associados para cadastro de funcionário.
+   * Corresponde ao GET: api/Employee/metadata do backend.
+   * Retorna: { departments: EmployeeDepartmentMetadata[] }
+   */
+  async getEmployeeMetadata(): Promise<{ departments: EmployeeDepartmentMetadata[] }> {
+    const response = await api.get<{ departments: EmployeeDepartmentMetadata[] }>("/Employee/metadata");
+    return {
+      departments: response.data.departments ?? [],
+    };
+  },
+
+  /**
    * POST: api/Employee
    * Cria um novo funcionário.
+   * Corresponde ao POST: api/Employee do backend.
+   * Se o departamento ou cargo não existir, retorna erro.
    */
   async createEmployee(dto: EmployeeCreateDto): Promise<EmployeeResponseDto> {
-    /**
-     * O backend valida:
-     * - Se o cargo existe para o Departamento.
-     * - hireDate deve ser Date or string ISO (ideal YYYY-MM-DDTHH:mm:ssZ, mas o DateOnly parseia YYYY-MM-DD).
-     */
-    const fixedDto = {
-      ...dto,
-      hireDate:
-        typeof dto.hireDate === "string"
-          ? dto.hireDate
-          : (dto.hireDate as Date).toISOString().substring(0, 10), // YYYY-MM-DD
-    };
-    const response = await api.post<EmployeeResponseDto>("/Employee", fixedDto);
+    const response = await api.post<EmployeeResponseDto>("/Employee", dto);
     return response.data;
   },
 
   /**
    * PUT: api/Employee/{id}
-   * Atualiza um funcionário existente.
+   * Atualiza os dados de um funcionário existente.
+   * Corresponde ao PUT: api/Employee/{id} do backend.
+   * Se o funcionário, departamento ou cargo não existir, retorna erro.
    */
   async updateEmployee(id: number, dto: EmployeeUpdateDto): Promise<EmployeeResponseDto> {
-    /**
-     * O backend valida:
-     * - Se existe o funcionário.
-     * - Cargo e dept.
-     * - hireDate suporta string/Date no formato YYYY-MM-DD.
-     */
-    const fixedDto = {
-      ...dto,
-      hireDate:
-        typeof dto.hireDate === "string"
-          ? dto.hireDate
-          : (dto.hireDate as Date).toISOString().substring(0, 10), // YYYY-MM-DD
-    };
-    const response = await api.put<EmployeeResponseDto>(`/Employee/${id}`, fixedDto);
+    const response = await api.put<EmployeeResponseDto>(`/Employee/${id}`, dto);
     return response.data;
   },
 
   /**
    * DELETE: api/Employee/{id}
-   * Remove um funcionário.
+   * Remove um funcionário do banco de dados.
+   * Corresponde ao DELETE: api/Employee/{id} do backend.
    */
   async deleteEmployee(id: number): Promise<void> {
     await api.delete(`/Employee/${id}`);
@@ -125,13 +136,11 @@ export const employeeService = {
 
   /**
    * PUT: api/Employee/{id}/status?activate={true|false}
-   * Ativa ou desativa o funcionário.
+   * Ativa ou desativa um funcionário.
+   * Corresponde ao PUT: api/Employee/{id}/status?activate={true|false} do backend.
    */
   async setEmployeeStatus(id: number, activate: boolean): Promise<EmployeeResponseDto> {
-    // O backend espera activate como query param ?activate={true|false}
-    const response = await api.put<EmployeeResponseDto>(
-      `/Employee/${id}/status?activate=${activate}`
-    );
+    const response = await api.put<EmployeeResponseDto>(`/Employee/${id}/status?activate=${activate}`);
     return response.data;
   },
 };
